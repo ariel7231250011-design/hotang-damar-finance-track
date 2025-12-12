@@ -1,9 +1,40 @@
+// Kalau nanti pakai state, tambah "use client"; di sini.
+
+type SummaryCardProps = {
+  title: string;
+  amount: string;
+  highlight?: "income" | "expense" | "neutral";
+};
+
+function SummaryCard({
+  title,
+  amount,
+  highlight = "neutral",
+}: SummaryCardProps) {
+  const color =
+    highlight === "income"
+      ? "text-emerald-400"
+      : highlight === "expense"
+      ? "text-red-400"
+      : "text-slate-50";
+
+  return (
+    <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-4 shadow-sm">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        {title}
+      </p>
+      <p className={`mt-3 text-2xl font-semibold ${color}`}>{amount}</p>
+    </div>
+  );
+}
+
 export default function LaporanPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-2">Laporan Keuangan</h1>
       <p className="text-slate-300 mb-6">
-        Ringkasan pendapatan, pengeluaran, dan laba/rugi untuk membantu evaluasi usaha.
+        Ringkasan pendapatan, pengeluaran, dan laba/rugi untuk membantu
+        evaluasi usaha.
       </p>
 
       <div className="mb-6 flex flex-wrap gap-3 items-center">
@@ -16,9 +47,21 @@ export default function LaporanPage() {
       </div>
 
       <section className="grid gap-4 md:grid-cols-3 mb-8">
-        <SummaryCard title="Total Pendapatan" amount="Rp 150.000" highlight="income" />
-        <SummaryCard title="Total Pengeluaran" amount="Rp 900.000" highlight="expense" />
-        <SummaryCard title="Laba / Rugi" amount="- Rp 750.000" highlight="expense" />
+        <SummaryCard
+          title="Total Pendapatan"
+          amount="Rp 150.000"
+          highlight="income"
+        />
+        <SummaryCard
+          title="Total Pengeluaran"
+          amount="Rp 900.000"
+          highlight="expense"
+        />
+        <SummaryCard
+          title="Laba / Rugi"
+          amount="- Rp 750.000"
+          highlight="expense"
+        />
       </section>
 
       <section className="grid gap-6 md:grid-cols-2">
