@@ -1,51 +1,32 @@
 export default function LaporanPage() {
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Laporan Keuangan Sederhana</h1>
+      <h1 className="text-2xl font-bold mb-2">Laporan Keuangan</h1>
       <p className="text-slate-300 mb-6">
-        Halaman ini menampilkan ringkasan total pendapatan, pengeluaran, dan
-        laba/rugi pada periode tertentu.
+        Ringkasan pendapatan, pengeluaran, dan laba/rugi untuk membantu evaluasi usaha.
       </p>
 
-      {/* Filter periode sederhana (belum berfungsi) */}
       <div className="mb-6 flex flex-wrap gap-3 items-center">
         <span className="text-sm text-slate-300">Periode:</span>
-        <select className="rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm">
+        <select className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm">
           <option>Bulan ini</option>
           <option>Bulan lalu</option>
           <option>Tahun ini</option>
         </select>
       </div>
 
-      {/* Ringkasan utama */}
       <section className="grid gap-4 md:grid-cols-3 mb-8">
-        <div className="rounded-lg bg-slate-900 border border-slate-800 p-4">
-          <p className="text-sm text-slate-400">Total Pendapatan</p>
-          <p className="text-2xl font-semibold mt-2 text-emerald-400">
-            Rp 150.000
-          </p>
-        </div>
-        <div className="rounded-lg bg-slate-900 border border-slate-800 p-4">
-          <p className="text-sm text-slate-400">Total Pengeluaran</p>
-          <p className="text-2xl font-semibold mt-2 text-red-400">
-            Rp 900.000
-          </p>
-        </div>
-        <div className="rounded-lg bg-slate-900 border border-slate-800 p-4">
-          <p className="text-sm text-slate-400">Laba / Rugi</p>
-          <p className="text-2xl font-semibold mt-2 text-red-400">
-            - Rp 750.000
-          </p>
-        </div>
+        <SummaryCard title="Total Pendapatan" amount="Rp 150.000" highlight="income" />
+        <SummaryCard title="Total Pengeluaran" amount="Rp 900.000" highlight="expense" />
+        <SummaryCard title="Laba / Rugi" amount="- Rp 750.000" highlight="expense" />
       </section>
 
-      {/* Breakdown sederhana */}
       <section className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-lg bg-slate-900 border border-slate-800 p-4">
+        <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-4">
           <h2 className="text-lg font-semibold mb-3">Pendapatan</h2>
           <ul className="space-y-2 text-sm">
             <li className="flex justify-between">
-              <span>Pendapatan Penjualan</span>
+              <span>Penjualan Barang</span>
               <span className="text-emerald-400">Rp 150.000</span>
             </li>
             <li className="flex justify-between">
@@ -55,7 +36,7 @@ export default function LaporanPage() {
           </ul>
         </div>
 
-        <div className="rounded-lg bg-slate-900 border border-slate-800 p-4">
+        <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-4">
           <h2 className="text-lg font-semibold mb-3">Pengeluaran</h2>
           <ul className="space-y-2 text-sm">
             <li className="flex justify-between">
