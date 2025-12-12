@@ -1,5 +1,3 @@
-// Kalau nanti pakai state, tambah "use client"; di sini.
-
 type SummaryCardProps = {
   title: string;
   amount: string;
@@ -77,7 +75,7 @@ export default function LaporanPage() {
               <span className="text-emerald-400">Rp 0</span>
             </li>
           </ul>
-        </div>
+</div>
 
         <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-4">
           <h2 className="text-lg font-semibold mb-3">Pengeluaran</h2>
