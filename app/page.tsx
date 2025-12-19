@@ -1,10 +1,23 @@
+import { prisma } from "@/lib/prisma";
+
+function formatRupiah(n: number) {
+  return "Rp " + n.toLocaleString("id-ID");
+}
+function isoDate(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
 type SummaryCardProps = {
   title: string;
   amount: string;
   highlight?: "income" | "expense" | "neutral";
 };
 
-function SummaryCard({ title, amount, highlight = "neutral" }: SummaryCardProps) {
+function SummaryCard({
+  title,
+  amount,
+  highlight = "neutral",
+}: SummaryCardProps) {
   const color =
     highlight === "income"
       ? "text-emerald-400"
@@ -22,93 +35,136 @@ function SummaryCard({ title, amount, highlight = "neutral" }: SummaryCardProps)
   );
 }
 
-const recentTransactions = [
-  {
-    date: "11-12-2025",
-    type: "Penjualan Barang",
-    desc: "Penjualan paket hotang",
-    amount: "+ Rp 150.000",
-    positive: true,
-  },
-  {
-    date: "11-12-2025",
-    type: "Pengeluaran Barang",
-    desc: "Pembelian stok keju",
-    amount: "- Rp 50.000",
-    positive: false,
-  },
-  {
-    date: "11-12-2025",
-    type: "Gaji Dibayar",
-    desc: "Gaji karyawan shift malam",
-    amount: "- Rp 500.000",
-    positive: false,
-  },
-];
+export default async function DashboardPage() {
+  // Ringkasan (aggregate)
+  const [salesSum, employeeIncomeSum, purchaseSum, otherExpenseSum, salarySum] =
+    await Promise.all([
+      prisma.sale.aggregate({ _sum: { total: true } }),
+      prisma.employeeIncome.aggregate({ _sum: { amount: true } }),
+      prisma.purchase.aggregate({ _sum: { total: true } }),
+      prisma.otherExpense.aggregate({ _sum: { amount: true } }),
+      prisma.salaryPayment.aggregate({ _sum: { amount: true } }),
+    ]);
 
-export default function Home() {
+  const totalPendapatan =
+    (salesSum._sum.total ?? 0) + (employeeIncomeSum._sum.amount ?? 0);
+
+  const totalPengeluaran =
+    (purchaseSum._sum.total ?? 0) +
+    (otherExpenseSum._sum.amount ?? 0) +
+    (salarySum._sum.amount ?? 0);
+
+  const labaRugi = totalPendapatan - totalPengeluaran;
+
+  // “Transaksi terbaru”: gabungkan dari beberapa tabel (ambil 5 terbaru tiap tabel, lalu sort)
+  const [latestSales, latestPurchases, latestOtherExpenses, latestSalary, latestEmpIncome] =
+    await Promise.all([
+      prisma.sale.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
+      prisma.purchase.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
+      prisma.otherExpense.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
+      prisma.salaryPayment.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
+      prisma.employeeIncome.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
+    ]);
+
+  const latest = [
+    ...latestSales.map((x) => ({
+      at: x.createdAt,
+      date: x.date,
+      label: `Penjualan: ${x.item}`,
+      amount: x.total,
+      kind: "income" as const,
+    })),
+    ...latestEmpIncome.map((x) => ({
+      at: x.createdAt,
+      date: x.date,
+      label: `Pendapatan Karyawan: ${x.employee} (${x.type})`,
+      amount: x.amount,
+      kind: "income" as const,
+    })),
+    ...latestPurchases.map((x) => ({
+      at: x.createdAt,
+      date: x.date,
+      label: `Pengeluaran Barang: ${x.item}`,
+      amount: x.total,
+      kind: "expense" as const,
+    })),
+    ...latestOtherExpenses.map((x) => ({
+      at: x.createdAt,
+      date: x.date,
+      label: `Biaya Lain-lain: ${x.type}`,
+      amount: x.amount,
+      kind: "expense" as const,
+    })),
+    ...latestSalary.map((x) => ({
+      at: x.createdAt,
+      date: x.date,
+      label: `Gaji Dibayar: ${x.employee}`,
+      amount: x.amount,
+      kind: "expense" as const,
+    })),
+  ]
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, 10);
+
   return (
     <div>
-      <section className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">
-          Hotang Damar Finance Track
-        </h1>
-        <p className="text-slate-300">
-          Pantau pendapatan, gaji, pengeluaran, dan biaya lain-lain dalam satu
-          dashboard sederhana.
-        </p>
-      </section>
+      <h1 className="text-2xl font-bold mb-2">Dashboard</h1>
+      <p className="text-slate-300 mb-6">
+        Ringkasan cepat berdasarkan data yang tersimpan di database.
+      </p>
 
-      <section className="grid gap-4 md:grid-cols-3 mb-10">
-        <SummaryCard title="Total Pendapatan Karyawan" amount="Rp 0" />
-        <SummaryCard title="Total Gaji Dibayar" amount="Rp 550.000" highlight="expense" />
+      <section className="grid gap-4 md:grid-cols-3 mb-8">
         <SummaryCard
-          title="Total Pengeluaran Barang"
-          amount="Rp 50.000"
+          title="Total Pendapatan"
+          amount={formatRupiah(totalPendapatan)}
+          highlight="income"
+        />
+        <SummaryCard
+          title="Total Pengeluaran"
+          amount={formatRupiah(totalPengeluaran)}
           highlight="expense"
         />
         <SummaryCard
-          title="Total Pendapatan Penjualan"
-          amount="Rp 150.000"
-          highlight="income"
+          title="Laba / Rugi"
+          amount={(labaRugi < 0 ? "- " : "") + formatRupiah(Math.abs(labaRugi))}
+          highlight={labaRugi < 0 ? "expense" : "income"}
         />
-        <SummaryCard title="Total Biaya Lain-lain" amount="Rp 300.000" highlight="expense" />
-        <SummaryCard title="Laba / Rugi Sementara" amount="- Rp 750.000" highlight="expense" />
       </section>
 
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Transaksi Terbaru</h2>
-          <button className="rounded-lg bg-slate-900 border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:border-emerald-500">
-            Lihat semua laporan
-          </button>
-        </div>
+      <section className="rounded-xl bg-slate-900/60 border border-slate-800 p-4">
+        <h2 className="text-lg font-semibold mb-3">Transaksi Terbaru</h2>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/60">
+        <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-slate-900 text-slate-300">
+            <thead className="text-slate-300">
               <tr>
-                <th className="px-4 py-2 text-left">Tanggal</th>
-                <th className="px-4 py-2 text-left">Jenis</th>
-                <th className="px-4 py-2 text-left">Deskripsi</th>
-                <th className="px-4 py-2 text-right">Nominal</th>
+                <th className="px-3 py-2 text-left">Tanggal</th>
+                <th className="px-3 py-2 text-left">Keterangan</th>
+                <th className="px-3 py-2 text-right">Nominal</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {recentTransactions.map((tx, i) => (
-                <tr key={i} className="hover:bg-slate-900/60">
-                  <td className="px-4 py-2">{tx.date}</td>
-                  <td className="px-4 py-2">{tx.type}</td>
-                  <td className="px-4 py-2">{tx.desc}</td>
+              {latest.map((t, idx) => (
+                <tr key={idx} className="hover:bg-slate-900/60">
+                  <td className="px-3 py-2">{isoDate(t.date)}</td>
+                  <td className="px-3 py-2">{t.label}</td>
                   <td
-                    className={`px-4 py-2 text-right ${
-                      tx.positive ? "text-emerald-400" : "text-red-400"
+                    className={`px-3 py-2 text-right ${
+                      t.kind === "income" ? "text-emerald-400" : "text-red-400"
                     }`}
                   >
-                    {tx.amount}
+                    {formatRupiah(t.amount)}
                   </td>
                 </tr>
               ))}
+
+              {latest.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-3 py-6 text-center text-slate-400">
+                    Belum ada transaksi.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

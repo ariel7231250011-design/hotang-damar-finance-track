@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Purchase {
+  id        String   @id @default(cuid())
+  date      DateTime
+  item      String
+  category  String
+  qty       Int
+  supplier  String?
+  total     Int
+  createdAt DateTime @default(now())
+}
+
+model EmployeeIncome {
+  id        String   @id @default(cuid())
+  date      DateTime
+  employee  String
+  type      String
+  note      String?
+  amount    Int
+  createdAt DateTime @default(now())
+}
+
+model Sale {
+  id        String   @id @default(cuid())
+  date      DateTime
+  item      String
+  category  String
+  qty       Int
+  price     Int?     // harga per unit (opsional)
+  customer  String?  // nama pelanggan / channel (opsional)
+  total     Int      // total transaksi
+  createdAt DateTime @default(now())
+}
+
+model OtherExpense {
+  id        String   @id @default(cuid())
+  date      DateTime
+  type      String
+  note      String?
+  amount    Int
+  createdAt DateTime @default(now())
+}
+
+model SalaryPayment {
+  id        String   @id @default(cuid())
+  date      DateTime
+  employee  String
+  note      String?
+  amount    Int
+  createdAt DateTime @default(now())
+}

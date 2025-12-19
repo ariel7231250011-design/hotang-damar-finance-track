@@ -1,3 +1,9 @@
+import { prisma } from "@/lib/prisma";
+
+function formatRupiah(n: number) {
+  return "Rp " + n.toLocaleString("id-ID");
+}
+
 type SummaryCardProps = {
   title: string;
   amount: string;
@@ -26,39 +32,58 @@ function SummaryCard({
   );
 }
 
-export default function LaporanPage() {
+export default async function LaporanPage() {
+  // SUM pendapatan
+  const salesSum = await prisma.sale.aggregate({
+    _sum: { total: true },
+  });
+  const employeeIncomeSum = await prisma.employeeIncome.aggregate({
+    _sum: { amount: true },
+  });
+
+  // SUM pengeluaran
+  const purchaseSum = await prisma.purchase.aggregate({
+    _sum: { total: true },
+  });
+  const otherExpenseSum = await prisma.otherExpense.aggregate({
+    _sum: { amount: true },
+  });
+  const salaryPaymentSum = await prisma.salaryPayment.aggregate({
+    _sum: { amount: true },
+  });
+
+  const totalPendapatan =
+    (salesSum._sum.total ?? 0) + (employeeIncomeSum._sum.amount ?? 0);
+
+  const totalPengeluaran =
+    (purchaseSum._sum.total ?? 0) +
+    (otherExpenseSum._sum.amount ?? 0) +
+    (salaryPaymentSum._sum.amount ?? 0);
+
+  const labaRugi = totalPendapatan - totalPengeluaran;
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-2">Laporan Keuangan</h1>
       <p className="text-slate-300 mb-6">
-        Ringkasan pendapatan, pengeluaran, dan laba/rugi untuk membantu
-        evaluasi usaha.
+        Ringkasan pendapatan, pengeluaran, dan laba/rugi berdasarkan data yang tersimpan.
       </p>
-
-      <div className="mb-6 flex flex-wrap gap-3 items-center">
-        <span className="text-sm text-slate-300">Periode:</span>
-        <select className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm">
-          <option>Bulan ini</option>
-          <option>Bulan lalu</option>
-          <option>Tahun ini</option>
-        </select>
-      </div>
 
       <section className="grid gap-4 md:grid-cols-3 mb-8">
         <SummaryCard
           title="Total Pendapatan"
-          amount="Rp 150.000"
+          amount={formatRupiah(totalPendapatan)}
           highlight="income"
         />
         <SummaryCard
           title="Total Pengeluaran"
-          amount="Rp 900.000"
+          amount={formatRupiah(totalPengeluaran)}
           highlight="expense"
         />
         <SummaryCard
           title="Laba / Rugi"
-          amount="- Rp 750.000"
-          highlight="expense"
+          amount={(labaRugi < 0 ? "- " : "") + formatRupiah(Math.abs(labaRugi))}
+          highlight={labaRugi < 0 ? "expense" : "income"}
         />
       </section>
 
@@ -68,29 +93,39 @@ export default function LaporanPage() {
           <ul className="space-y-2 text-sm">
             <li className="flex justify-between">
               <span>Penjualan Barang</span>
-              <span className="text-emerald-400">Rp 150.000</span>
+              <span className="text-emerald-400">
+                {formatRupiah(salesSum._sum.total ?? 0)}
+              </span>
             </li>
             <li className="flex justify-between">
               <span>Pendapatan Karyawan</span>
-              <span className="text-emerald-400">Rp 0</span>
+              <span className="text-emerald-400">
+                {formatRupiah(employeeIncomeSum._sum.amount ?? 0)}
+              </span>
             </li>
           </ul>
-</div>
+        </div>
 
         <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-4">
           <h2 className="text-lg font-semibold mb-3">Pengeluaran</h2>
           <ul className="space-y-2 text-sm">
             <li className="flex justify-between">
               <span>Gaji Dibayar</span>
-              <span className="text-red-400">Rp 500.000</span>
+              <span className="text-red-400">
+                {formatRupiah(salaryPaymentSum._sum.amount ?? 0)}
+              </span>
             </li>
             <li className="flex justify-between">
               <span>Pengeluaran Barang</span>
-              <span className="text-red-400">Rp 100.000</span>
+              <span className="text-red-400">
+                {formatRupiah(purchaseSum._sum.total ?? 0)}
+              </span>
             </li>
             <li className="flex justify-between">
               <span>Biaya Lain-lain</span>
-              <span className="text-red-400">Rp 300.000</span>
+              <span className="text-red-400">
+                {formatRupiah(otherExpenseSum._sum.amount ?? 0)}
+              </span>
             </li>
           </ul>
         </div>

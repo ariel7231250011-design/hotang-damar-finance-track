@@ -1,102 +1,96 @@
-"use client";
+import { prisma } from "@/lib/prisma";
+import { createEmployeeIncome, deleteEmployeeIncome } from "./actions";
 
-import { useState } from "react";
+function formatRupiah(n: number) {
+  return "Rp " + n.toLocaleString("id-ID");
+}
 
-type EmployeeIncome = {
-  date: string;
-  employee: string;
-  type: string;
-  note: string;
-  amount: string;
-};
+function isoDate(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
 
-const initialIncomes: EmployeeIncome[] = [
-  {
-    date: "11-12-2025",
-    employee: "Budi",
-    type: "Bonus",
-    note: "Bonus target penjualan",
-    amount: "Rp 200.000",
-  },
-  {
-    date: "11-12-2025",
-    employee: "Sari",
-    type: "Komisi",
-    note: "Komisi penjualan online",
-    amount: "Rp 150.000",
-  },
-];
-
-export default function PendapatanKaryawanPage() {
-  const [incomes, setIncomes] = useState<EmployeeIncome[]>(initialIncomes);
-  const [isOpen, setIsOpen] = useState(false);
-
-  const [form, setForm] = useState({
-    date: "",
-    employee: "",
-    type: "",
-    note: "",
-    amount: "",
+export default async function PendapatanKaryawanPage() {
+  const incomes = await prisma.employeeIncome.findMany({
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
   });
-
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (!form.date || !form.employee || !form.type || !form.amount) {
-      alert("Tanggal, Karyawan, Jenis, dan Nominal wajib diisi.");
-      return;
-    }
-
-    setIncomes((prev) => [
-      {
-        date: form.date,
-        employee: form.employee,
-        type: form.type,
-        note: form.note,
-        amount: form.amount,
-      },
-      ...prev,
-    ]);
-
-    setForm({ date: "", employee: "", type: "", note: "", amount: "" });
-    setIsOpen(false);
-  }
 
   return (
     <div>
       <h1 className="text-2xl font-bold mb-2">Pendapatan Karyawan</h1>
       <p className="text-slate-300 mb-6">
-        Catat pendapatan tambahan karyawan seperti bonus, komisi, dan insentif
-        agar transparansi tetap terjaga.
+        Catat bonus, komisi, dan insentif karyawan (tersimpan di database).
       </p>
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 text-sm text-slate-300">
-          <span>Jenis:</span>
-          <select className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm">
-            <option>Semua</option>
-            <option>Bonus</option>
-            <option>Komisi</option>
-            <option>Insentif</option>
-          </select>
+      {/* CREATE */}
+      <form
+        action={createEmployeeIncome}
+        className="mb-6 grid gap-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-sm md:grid-cols-3"
+      >
+        <div>
+          <label className="block mb-1 text-slate-300">Tanggal</label>
+          <input
+            name="date"
+            type="date"
+            required
+            className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2"
+          />
         </div>
 
-        <button
-          onClick={() => setIsOpen(true)}
-          className="ml-auto rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500"
-        >
-          + Tambah Pendapatan
-        </button>
-      </div>
+        <div>
+          <label className="block mb-1 text-slate-300">Nama Karyawan</label>
+          <input
+            name="employee"
+            required
+            placeholder="Contoh: Budi"
+            className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2"
+          />
+        </div>
 
-      {/* Tabel */}
+        <div>
+          <label className="block mb-1 text-slate-300">Jenis</label>
+          <input
+            name="type"
+            required
+            placeholder="Bonus / Komisi / Insentif"
+            className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block mb-1 text-slate-300">
+            Keterangan (opsional)
+          </label>
+          <input
+            name="note"
+            placeholder="Contoh: Bonus target"
+            className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1 text-slate-300">
+            Nominal (angka, contoh 150000)
+          </label>
+          <input
+            name="amount"
+            type="number"
+            min={0}
+            required
+            className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2"
+          />
+        </div>
+
+        <div className="md:col-span-3 flex justify-end">
+          <button
+            type="submit"
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500"
+          >
+            Simpan
+          </button>
+        </div>
+      </form>
+
+      {/* LIST + DELETE */}
       <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/60">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-900 text-slate-300">
@@ -106,122 +100,47 @@ export default function PendapatanKaryawanPage() {
               <th className="px-4 py-2 text-left">Jenis</th>
               <th className="px-4 py-2 text-left">Keterangan</th>
               <th className="px-4 py-2 text-right">Nominal</th>
+              <th className="px-4 py-2 text-right">Aksi</th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-slate-800">
-            {incomes.map((item, idx) => (
-              <tr key={idx} className="hover:bg-slate-900/60">
-                <td className="px-4 py-2">{item.date}</td>
-                <td className="px-4 py-2">{item.employee}</td>
-                <td className="px-4 py-2">{item.type}</td>
-                <td className="px-4 py-2">{item.note}</td>
+            {incomes.map((x) => (
+              <tr key={x.id} className="hover:bg-slate-900/60">
+                <td className="px-4 py-2">{isoDate(x.date)}</td>
+                <td className="px-4 py-2">{x.employee}</td>
+                <td className="px-4 py-2">{x.type}</td>
+                <td className="px-4 py-2">{x.note ?? "-"}</td>
                 <td className="px-4 py-2 text-right text-emerald-400">
-                  {item.amount}
+                  {formatRupiah(x.amount)}
+                </td>
+                <td className="px-4 py-2 text-right">
+                  <form action={deleteEmployeeIncome}>
+                    <input type="hidden" name="id" value={x.id} />
+                    <button
+                      type="submit"
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      Hapus
+                    </button>
+                  </form>
                 </td>
               </tr>
             ))}
+
+            {incomes.length === 0 && (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-4 py-4 text-center text-slate-400"
+                >
+                  Belum ada data pendapatan karyawan.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-
-      {/* Modal tambah pendapatan */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-30 flex items-center justify-center bg-black/60"
-          onClick={() => setIsOpen(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-xl bg-slate-950 border border-slate-800 p-5 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-semibold mb-4">
-              Tambah Pendapatan Karyawan
-            </h2>
-
-            <form onSubmit={handleSubmit} className="space-y-3 text-sm">
-              <div>
-                <label className="block mb-1 text-slate-300">Tanggal</label>
-                <input
-                  type="date"
-                  name="date"
-                  value={form.date}
-                  onChange={handleChange}
-                  className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1 text-slate-300">
-                  Nama Karyawan
-                </label>
-                <input
-                  type="text"
-                  name="employee"
-                  value={form.employee}
-                  onChange={handleChange}
-                  placeholder="Misal: Budi"
-                  className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1 text-slate-300">Jenis</label>
-                <input
-                  type="text"
-                  name="type"
-                  value={form.type}
-                  onChange={handleChange}
-                  placeholder="Bonus / Komisi / Insentif"
-                  className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1 text-slate-300">
-                  Nominal (format bebas)
-                </label>
-                <input
-                  type="text"
-                  name="amount"
-                  value={form.amount}
-                  onChange={handleChange}
-                  placeholder="Misal: Rp 200.000"
-                  className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1 text-slate-300">
-                  Keterangan (opsional)
-                </label>
-                <textarea
-                  name="note"
-                  value={form.note}
-                  onChange={handleChange}
-                  rows={2}
-                  className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2"
-                />
-              </div>
-
-              <div className="mt-4 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-md border border-slate-700 px-3 py-2 text-xs"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium hover:bg-emerald-500"
-                >
-                  Simpan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
